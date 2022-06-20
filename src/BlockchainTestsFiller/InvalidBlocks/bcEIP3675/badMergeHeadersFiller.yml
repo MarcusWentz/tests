@@ -1,0 +1,106 @@
+# See if invalid merge block header parameters are rejected while being mined.
+
+
+badMergeHeaders:
+  genesisBlockHeader:
+    bloom: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+    coinbase: '0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba'
+    difficulty: '0'
+    extraData: '0X00'
+    gasUsed: '0'
+    mixHash: '0x0000000000000000000000000000000000000000000000000000000000000000'
+    nonce: '0x0000000000000000'
+    number: '0'
+    parentHash: '0x0000000000000000000000000000000000000000000000000000000000000000'
+    receiptTrie: '0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'
+    stateRoot: '0xf99eb1626cfa6db435c0836235942d7ccaa935f1ae247d3f1c21e495685f903a'
+    timestamp: '0x03b6'
+    transactionsTrie: '0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'
+    uncleHash: '0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347'
+    gasLimit: 1073741824
+    baseFeePerGas: 1000
+  sealEngine: NoProof
+
+  pre:
+    0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b:
+      balance: 0x10000000000
+      code: ''
+      nonce: 1
+      storage: {}
+
+  blocks:
+
+    #Block 1: accept genesis header values.
+  - blocknumber: 1
+    transactions: []
+
+    #uncleHash tests:
+    #Reject uncleHash < 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347.
+  - blocknumber: 2
+    blockHeader:
+      uncleHash: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49346"
+    uncleHeaders:
+      - populateFromBlock: 1
+    transactions: []
+    expectException:
+      '>=Frontier': 3675PreMerge1559BlockRejected
+
+  #   #Reject uncleHash > 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347.
+  - blocknumber: 2
+    blockHeader:
+      uncleHash: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49348"
+    transactions: []
+    expectException:
+      '>=Frontier': 3675PreMerge1559BlockRejected
+
+    #difficulty tests:
+    #Reject difficulty != 0.
+  - blocknumber: 2
+    blockHeader:
+      difficulty: "1"
+    transactions: []
+    expectException:
+      '>=Frontier': 3675PreMerge1559BlockRejected
+
+    #Reject difficulty when parent is not verified.
+  - blocknumber: 2
+    blockHeader:
+      difficulty: "131072"
+    transactions: []
+    expectException:
+      '>=Frontier': 3675PreMerge1559BlockRejected
+
+    #mixHash tests:
+    #mixHash from genesis value matches prevrandao opcode (valid).
+    ############################################################################
+
+    #mixHash from genesis value matches prevrandao opcode (invalid).
+    ############################################################################
+
+    #nonce test:
+    #Reject block with nonce =! 0.
+  # - blocknumber: 2
+  #   blockHeader:
+  #     nonce: '0x0000000000000000' #Genesis nonce. Should be valid, but says "Key `nonce` is not hash8 `0x00`".
+  #     nonce: '0x0000000000000001' #Test value: `nonce` is not hash8 `0x00`". Genesis nonce with this value is valid when it should be invalid.
+  #   transactions: []
+  #   expectException:
+  #     '>=Frontier': 3675PreMerge1559BlockRejected
+
+    #uncle test:
+    #Reject an uncle block from being produced.
+  - blocknumber: 2
+    uncleHeaders:
+      - populateFromBlock: 1
+    transactions: []
+    expectException:
+      '>=London': 3675PreMerge1559BlockRejected
+
+    #Block 2 should be accepted after all failing blocks.
+  - blocknumber: 2
+    transactions: []
+
+  expect:
+  - network:
+    - "Merge"
+    result: {}
